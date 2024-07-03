@@ -25,6 +25,7 @@ url: "https://chirpy8.github.io"
 baseurl: ""
 teaser: /assets/images/default_ECU_image.jpg
 logo: /assets/images/default_ECU_image.jpg
+future: true
 
 
 # Build settings
