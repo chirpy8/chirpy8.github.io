@@ -7,34 +7,32 @@ tags:
   - Jaguar
   - AJ27
 ---
-![AJ27 ECU PCB Top]({{ site.url }}{{ site.baseurl }}/assets/images/ECUTop.jpg)
-
 In this post I will take a quick tour around the hardware schematic of the Jaguar AJ27 ECU to investigate some of the features, and provide a view of a mid/late 90s ECU design.
 As a refresher, the ECU uses dual Motorola 68HC16 processors and controls the Jaguar 4.0 liter V8 AJ27 engine. Images in this post are from a rough schematic created using KiCad, through images and tracing of a PCB. The schematic is approximate at best, misses off quite a few components especially decoupling capacitors, makes best guesses on a number of others such as transistors and diodes, and needs some clean up where spurious nodes have been added by sloppy editing, etc.
 
 The canbus interface is implemented using an Intel AN82527 Can controller.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/AN82527 to CPU Schematic.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/AN82527 to CPU Schematic.png)
 
 Notable features here are connection to the Main CPU (IC501) via an 8 bit data bus (pins 31-38 on the left of the AN82527), and addressing with the use of the lower 8 lines of the address bus (on the top of the AN82527, pins 2-4 and 39-43). The use of the CSA (Chip Select A) line from the CPU means that the can controller is memory mapped into the CPU address space. This provides read/write access of the CPU to 256 bytes of RAM within the AN82527 address map. Also not visible on this snapshot, Port 2 of the AN82527 on pins 10-17 is used for generic input/output.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/Input-Output buffer example.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Input-Output buffer example.png)
 
 A proprietary Denso part (D151821) is used to buffer inputs to the CPU, and also interface a couple of 12V inputs to the 5V required for the processor. A couple of these devices are used in the ECU, and one is shown in the above snapshot. It is used to buffer various inputs, including in this example from the EM80 ECU connector, such as EM80-20 for Speed control brake cancel, and EM80-27 for ECM programming flash comms control port.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/Analog inputs and fuel injector example.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Analog inputs and fuel injector example.png)
 
 The analog to digital inputs on the CPU shown at the top of this snapshot (pins 153-160) are connected via some basic protection circuitry to the relevant sensors on the engine. A good example is at the bottom of this image, showing the Intake Air Temperature (IAT) sensor input, which connects the CPU AN53 ADC input (pin 154). Another example is the Barometric pressure sensor (IC406) which connects to the CPU AN57 ADC input. The downstream oxygen sensors for banks A and B (O2_DS_A and O2_DS_B) also connect to ADC inputs. Also seen on this snapshot are a couple of injector drivers (IGN_3A and IGN_1A) which are driven (not visible here) by outputs of the Configurable Timer Module (CTM) of the CPU.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/Flash Programming Voltage Conditioning.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Flash Programming Voltage Conditioning.png)
 
 The conditioning circuit for the Flash programming voltage can be seen in the above image. It ensures that the voltage is not applied unless the CPU is powered up, and is regulated via the OpAmp/NPN transistor(BC847)/protection diode to a voltage of about 12.2V, as long as the raw input voltage is about 15.3V or higher.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/Secondary CPU BDM.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Secondary CPU BDM.png)
 
 The Background Debug Mode interface to the secondary CPU is shown above. Both CPUs have break out pads for a BDM interface on the PCB. Also visible on this image in the top left is an AND gate which allows the main CPU, or the VDD power circuit on loss of watchdog signal, to force a reset of the secondary CPU.
 
-![AN82527 to ECU schematic)({{ site.url }}{{ site.baseurl }}/assets/images/Wideband )2 sensor processing.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Wideband )2 sensor processing.png)
 
 The upstream wideband oxygen sensors for the engine are processed by a proprietary Denso part, which interfaces to the Main CPU using SPI. The MOSFET drivers for the heaters can be seen on the right side of the diagram.
 
