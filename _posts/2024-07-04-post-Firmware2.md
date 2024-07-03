@@ -1,5 +1,5 @@
 ---
-title: "AJ27 Firmware Introduction"
+title: "AJ27 Firmware 2"
 categories:
   - Software and firmware
 tags:
