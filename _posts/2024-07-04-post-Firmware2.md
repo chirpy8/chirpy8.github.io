@@ -10,5 +10,5 @@ tags:
   - Ghidra
   - Sleigh
 ---
-draft pending
+draft pending soon
 
