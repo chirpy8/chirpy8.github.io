@@ -12,7 +12,7 @@ As a refresher, the ECU uses dual Motorola 68HC16 processors and controls the Ja
 
 The canbus interface is implemented using an Intel AN82527 Can controller.
 
-![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/AN82527 to CPU Schematic.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/AN82527 to ECU Schematic.png)
 
 Notable features here are connection to the Main CPU (IC501) via an 8 bit data bus (pins 31-38 on the left of the AN82527), and addressing with the use of the lower 8 lines of the address bus (on the top of the AN82527, pins 2-4 and 39-43). The use of the CSA (Chip Select A) line from the CPU means that the can controller is memory mapped into the CPU address space. This provides read/write access of the CPU to 256 bytes of RAM within the AN82527 address map. Also not visible on this snapshot, Port 2 of the AN82527 on pins 10-17 is used for generic input/output.
 
@@ -32,7 +32,7 @@ The conditioning circuit for the Flash programming voltage can be seen in the ab
 
 The Background Debug Mode interface to the secondary CPU is shown above. Both CPUs have break out pads for a BDM interface on the PCB. Also visible on this image in the top left is an AND gate which allows the main CPU, or the VDD power circuit on loss of watchdog signal, to force a reset of the secondary CPU.
 
-![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Wideband )2 sensor processing.png)
+![AN82527 to ECU schematic]({{ site.url }}{{ site.baseurl }}/assets/images/Wideband O2 sensor processing.png)
 
 The upstream wideband oxygen sensors for the engine are processed by a proprietary Denso part, which interfaces to the Main CPU using SPI. The MOSFET drivers for the heaters can be seen on the right side of the diagram.
 
