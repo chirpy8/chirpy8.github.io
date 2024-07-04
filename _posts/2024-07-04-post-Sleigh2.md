@@ -88,7 +88,7 @@ Ghidra will read the first byte, and attempt to match it to patterns defined und
 
 ![68HC16 ADDB instruction]({{ site.url }}{{ site.baseurl }}/assets/images/68HC16 ADDB instruction.png)
 
-Sometimes, manufacturers have implemented backwards compatibility between different generations of processors in a family, to make code migration simpler. The HC16 16 bit processor is an evolution from the earlier HC11 8 bit processor. A basic HC11 instruction uses a single byte opcode for an instruction, allowing for 256 possible codes. To add more instructions for the HC16 without changing the existing definitions for HC11, 3 additional ‘pages’ were added, using prefixes of 0x17, 0x27 and 0x37 before a single byte opcode. For the ADDB instruction above, the IND8 and IMM8 addressing modes using a single byte opcode. The IND16 and EXT addressing modes use the 0x17 prefix before the single byte opcode, and the E mode the prefix 0x27. SLEIGH allows us to examine a byte, and match it one of four pages (none, 0x17, 0x27, 0x37). Once this pattern is matched, we can strip off the prefix if there is one, and continue to match the pattern with the next opcode. This recursive approach to pattern matching is achieved using the special "instruction" keyword, see [here](https://github.com/NationalSecurityAgency/ghidra/issues/2365) for more details. To use this technique, we define a ‘dummy’ register (called 'contextreg') that can maintain state information about the processor.
+Sometimes, manufacturers have implemented backwards compatibility between different generations of processors in a family, to make code migration simpler. The HC16 16 bit processor is an evolution from the earlier HC11 8 bit processor. A basic HC11 instruction uses a single byte opcode for an instruction, allowing for 256 possible codes. To add more instructions for the HC16 without changing the existing definitions for HC11, 3 additional ‘pages’ were added, using prefixes of 0x17, 0x27 and 0x37 preceding a single byte opcode. For the ADDB instruction above, the IND8 and IMM8 addressing modes use a single byte opcode. The IND16 and EXT addressing modes use the 0x17 prefix before the single byte opcode, and the E mode uses the prefix 0x27. SLEIGH allows us to examine a byte, and match it one of the four pages (none, 0x17, 0x27, 0x37). Once this pattern is matched, we can strip off the prefix if there is one, and continue to match the pattern with the next opcode. This recursive approach to pattern matching is achieved using the special "instruction" keyword, see [here](https://github.com/NationalSecurityAgency/ghidra/issues/2365) for more details. To use this technique, we define a ‘dummy’ register (called 'contextreg') that can maintain state information about the processor.
 
 ```
 define register offset=0xC0 size=4 contextreg;
@@ -110,9 +110,9 @@ When parsing an opcode, before doing anything else (phase = 0), we test if the o
 :^instruction is phase=0 & instruction [ prefix=0; phase=1;]  { }
 ```
 
-In this way, we are able to read the instruction page prefix first, and then proceed to examine the next opcode in combination with knowledge of the current prefix value. This helps us deal with instructions that are either one or 2 byte opcodes, and reduce all matching to a single opcode plus a prefix value, which simplifies Sleigh coding. So for the COMB instruction example earlier in this post, we can apply the matching criteria "prefix=3 & op8=0x10"
+In this way, we are able to read the instruction page prefix first, and then proceed to examine the next opcode in combination with knowledge of the current prefix value. This helps us deal with instructions that are either one or two byte opcodes, and reduce all matching to a single opcode plus a prefix value, which simplifies Sleigh coding. So for the COMB instruction example earlier in this post, we can apply the matching criteria "prefix=3 & op8=0x10"
 
-The other major concept we need to address is how to deal with all the different addressing modes for a single instruction. A good objective (although not always possible or efficient) is to attempt to code an instruction only once for all possible patterns. This means that the code only has to be maintained in one place for bug fixes, etc. Note that this is a design choice only, and it is perfectly acceptable to write a sleigh description for each different address mode. As we have seen, instructions often have multiple opcodes, to accommodate multiple addressing modes for specifying target addresses. The opcode mappings created by the manufacturer often incorporate patterns that consistently specify the different modes.
+The other major concept we need to address is how to deal with all the different addressing modes for a single instruction. A good objective (although not always possible or efficient) is to attempt to code an instruction only once for all possible patterns. This means that the code only has to be maintained in one place for bug fixes, etc. Note that this is a design choice only, and it is perfectly acceptable to write a sleigh description for each different address mode of each instruction. As we have seen, instructions often have multiple opcodes, to accommodate multiple addressing modes for specifying target addresses. The opcode mappings created by the manufacturer often incorporate patterns that consistently specify the different modes.
 
 For the HC16, addressing modes include:
 * Immediate 8 bit
@@ -123,25 +123,29 @@ For the HC16, addressing modes include:
 * Accumulator offset using X,Y,or Z index register and 16 bit signed offset from E register
 
 Study of the opcodes reveal that opcode bits 4,5 usually indicate the index register to use across a wide group of instructions, etc.
-* 00 for X, 01 for Y, 10 for Z, 11 for extended address
-SLEIGH allows us to define a “table” to match these patterns. Consider the ASL instruction.
+* 00 for X
+* 01 for Y
+* 10 for Z
+* 11 for extended address
+
+SLEIGH allows us to define a “table” to match these patterns. Consider the ASL instruction:
 
 ![68HC16 ASL instruction]({{ site.url }}{{ site.baseurl }}/assets/images/68HC16 ASL instruction.png)
 
 Ignoring the prefix, the opcode bit patterns are:
-0x04 : 00 00 0100
-0x14 : 00 01 0100
-0x24 : 00 10 0100
-0x34 : 00 11 0100
+* 0x04 : 00 00 0100
+* 0x14 : 00 01 0100
+* 0x24 : 00 10 0100
+* 0x34 : 00 11 0100
 
 So we can specify:
 * Prefix=0 for for IND8 mode, and Prefix=1 for IND16/EXT mode
 * Matching the opcode to 00 xx 0100 gives the ASL instruction (i.e. match bits 7,6,3,2,1,0
 * Matching the opcode to xx 00 xxxx indicates X register, 01 for Y register, etc. (i.e. match bits 5,4)
 
-A further study of the instruction set will reveal that this pattern can be applied to 11 instructions (ASL, ASR, CLR, COM, DEC, INC, LSR, NEG, ROL, ROR, TST) which all manipulate one byte in memory. We can define a new table, which we call “memByte1”, which matches to the target patterns for the 11 instructions in this grouping. Table “memByte1” will allow us to  identify which of the 7 addressing modes is used, and allow us to calculate the target address of the memory byte from the instruction operands. It will also help create the information required to display the instruction in the disassembly listing window in Ghidra. 3 entries will be needed for the table, for IND8, IND16, and EXT modes.
+A further study of the instruction set will reveal that this pattern can be applied to 11 instructions (ASL, ASR, CLR, COM, DEC, INC, LSR, NEG, ROL, ROR, TST) which all manipulate one byte in memory. We can define a new table, which we call “memByte1”, which matches to the target patterns for the 11 instructions in this grouping. Table “memByte1” will allow us to  identify which of the 7 addressing modes is used, and allow us to calculate the target address of the memory byte from the instruction operands. It will also help create the information required to display the instruction in the disassembly listing window in Ghidra. Three entries will be needed for the table, for the three supported address modes, namely IND8, IND16, and EXT modes.
 
-Using the token opbyte8 that we defined earlier
+Using the token opbyte8 that we defined earlier, shown below,
 
 ```
 define token opbyte8 (8)
@@ -181,26 +185,26 @@ indexReg: op5_4b is (op5_4=0b00 | op5_4=0b01 | op5_4=0b10) & op5_4a & op5_4b
 { local addr:4 = op5_4a:4 ; export addr;}
 ```
 
-We can define similar, but simpler, primitive tables to help us with the IND8, IND16 and EXT address modes, as follows.
+We can define similar, but simpler, primitive tables to help us with the IND8, IND16 and EXT address modes, as follows, refering to the ASL instruction as a reference.
 
 
 ![68HC16 ASL instruction]({{ site.url }}{{ site.baseurl }}/assets/images/68HC16 ASL instruction.png)
 
-* IND8 operand is 1 byte, an 8 bit unsigned value
+* IND8 operand is 1 byte, an 8 bit unsigned value, which will get added to the X, Y or Z register
 
 ```
 offset_u8: imm8 is imm8
 { local addr:4 = zext(imm8:1); export addr;}
 ```
 
-* IND16 operands is 2 bytes, a 16 bit signed value
+* IND16 operands is 2 bytes, a 16 bit signed value, which will get added to the X, Y or Z register
 
 ```
 offset_s16: simm16 is simm16
 { local addr:4 = sext(simm16:2); export addr;}
 ```
 
-* EXT operand is 2 bytes, a 16 bit unsigned value
+* EXT operand is 2 bytes, a 16 bit unsigned value, which combined with the extension register (4 bit extension to 20 bits)
 
 ```
 extendedAddr: imm16	is imm16
@@ -215,9 +219,13 @@ memByte1: offset_s16,indexReg is prefix=1 & indexReg ; offset_s16 { local addr:4
 memByte1: extendedAddr is prefix=1 & op5_4=0b11 ; extendedAddr { local addr:4 = extendedAddr; export *:1 addr; }
 ```
 
-The first entry, for IND8, uses indexReg table to determine the target register from the opcode, and offset_u8 table to get the offset. These are then added to compute the target 32 bit memory address, and return its contents as a byte value. The coding `export *:1 addr` assigns the value of variable memByte1 to the 1 byte value (:1) contained in the memory location (*) at the 32 bit address “addr”. The second and third entries for IND16 and EXT use similar coding.
+A easier to read screenshot of memByte1 rendered using Eclipse Sleigh editor with code highlighting is:
 
-Having defined the table 'memByte1', we can now create a single Sleigh description for the ASL instructions which covers all its addressing modes.
+![memByte1 table]({{ site.url }}{{ site.baseurl }}/assets/images/memByte1 table.png)
+
+The first entry, for IND8, uses indexReg table to determine the target register from the opcode, and offset_u8 table to get the offset. These are then added to compute the target 32 bit memory address. We can then set the value of memByte1 to the byte value stored at this address in memory. The coding `export *:1 addr` does this - 'export' assigns the value of variable memByte1 to the 1 byte value (:1) contained in the memory location (*) at the 32 bit/4 byte address “addr:4”. The second and third entries for IND16 and EXT use similar coding.
+
+Having defined the table 'memByte1', we can now create a single entry for the Sleigh description of the ASL instruction which covers all its addressing modes.
 
 ```
 :ASL memByte1	is (op7_6=0b00 & op3_0=0b0100 & (prefix=1 | $(NotPrefix0AndOp54))) ... & memByte1 
@@ -230,28 +238,15 @@ shiftFlags(tmp);
 }
 ```
 
-Matching op7_6 and op3_0 determines which instruction in the group of 11 which use this pattern is being specified. The additional constraints prefix=1 and macro NotPrefix0andOp54 ensure no overlap versus parsing other instructions. This is because the addressing tables for different modes may overlap, depending on the specific patterns needed.
+![ASL instruction screenshot]({{ site.url }}{{ site.baseurl }}/assets/images/ASL instruction screenshot.png)
 
-The ellipsis (…) symbol is required because the entries in memByte1 are of differing lengths. IND8 is 2 bytes (after prefix stripping), IND16 and EXT are 4 bytes. MemByte1 is used for parsing both the opcode and the operands, so it can be applied to either 2 or 4 bytes of code. The constraints applied via op7_7, op3_0, etc. are on the 1 opcode byte only. So this section can be extended with additional bytes to the right, in order to match the size of memByte1 (SLEIGH requires this).
+Matching both op7_6 and op3_0 determines the target instruction from the group of 11 using this pattern. The additional constraints prefix=1 and macro NotPrefix0andOp54 ensure no overlap versus parsing other HC16 instructions. This is because the addressing tables for different modes may overlap, depending on the specific patterns needed.
+
+The ellipsis (…) symbol is required because the patterns/address modes specified in memByte1 table are of various lengths. IND8 is 2 bytes (after prefix stripping), IND16 and EXT are 4 bytes. memByte1 is used for parsing both the opcode and the operands, so it can be applied to either 2 or 4 bytes of code. The constraints '(op7_6=0b00 & op3_0=0b0100 & (prefix=1 | $(NotPrefix0AndOp54)))` are on the single opcode byte only - they all ony apply to a single byte token. So this section is extended/padded with 'dummy' additional bytes to the right as necessary, using the ellipsis symbol, in order to match the size of the second part of the matching criteria, namely the memByte1 table.
 
 The memByte 1 table can then also be used for other instructions from the same group of 11, such as CLR, DEC, etc.
 
-```
-:CLR memByte1	is (op3_0=0b0101 & op7_6=0b00 & (prefix=1 | $(NotPrefix0AndOp54)))  ... & memByte1 
-{
-memByte1 = 0;
-clearFlags();
-}
+![CLR and DEC instructions screenshot]({{ site.url }}{{ site.baseurl }}/assets/images/CLR and DEC instructions screenshot.png)
 
-:DEC memByte1	is (op3_0=0b0001 & op7_6=0b00 & (prefix=1 | $(NotPrefix0AndOp54)))  ... & memByte1 
-{
-tmp:1 = memByte1;
-result:1 = tmp - 1;
-memByte1 = result;
-decFlags(tmp, result);
-}
-
-```
-
-In the next post we'll consider the other addressing modes, branching, the other required files for the processor module(ldefs, pspec, etc.), and compiling and installing the processor module into Ghidra.
+In the next post, we'll review the other addressing modes, branching, the other required files for the processor module (.ldefs, .pspec, etc.), and compiling and installing the processor module into Ghidra.
 
