@@ -196,7 +196,7 @@ A file called an index file needs to be created, which has the same name as the 
 The first line defines pdf file to use for mnemonic entries. Subsequent lines reference the various instructions
 * The format is: Mnemonic (in caps), page number
 * < is used to import another index file
-* # is used for comments
+* \# is used for comments
 
 The first few lines for HC16 example are:
 
