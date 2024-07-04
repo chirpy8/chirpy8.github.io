@@ -1,5 +1,5 @@
 ---
-title: "Writing a Ghidra processor specification"
+title: "Writing a Ghidra processor specification part 1"
 categories:
   - Ghidra
 tags:
