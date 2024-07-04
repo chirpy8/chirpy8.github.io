@@ -8,7 +8,7 @@ tags:
   - Sleigh
 ---
 
-##More on addressing modes
+## More on addressing modes
 
 Following on from the previous post, another example of an addressing modes table is for a group of 10 HC16 instructions: ADCD, ANDD, CPD, EORD, LDD, ORD, SBCD, SUBD, STD, ADDD.
 
@@ -58,7 +58,7 @@ There are some additional 'quirks' for this particular HC16 CPU, and these illus
 
 ![ADDD sleigh instruction]({{ site.url }}{{ site.baseurl }}/assets/images/ADDD sleigh instruction.png)
 
-##Branches
+## Branches
 
 Branches are well described in the SLEIGH guide. The HC16 processor has a pipe-lined architecture, so various adjustments need to be made to branching instructions. An offset (+6) needs to be added to relative branches. This can be implemented in tables created to calculate 8 bit and 16 bit relative branches, which we can call dest_rel8 and dest_rel16.
 
@@ -103,7 +103,7 @@ call dest_rel8;
 
 Similar adjustments are required for other program change of flow instructions.
 
-##Other files required for a complete processor module
+## Other files required for a complete processor module
 
 The .psepc file primarily identifies how Ghidra can identify the program counter register(s). For our HC16 example, we have also added some definitions for the reset vectors.
 
@@ -183,7 +183,7 @@ As an alternative, a basic set of definitions is shown below for the HC16 exampl
 
 [The Ghidra Book](https://nostarch.com/GhidraBook) provides a good overview of the decompiler operation. More details on cspec can also be found in the Ghidra documentation (there is a cspec.xml file in the Ghidra respository, likely at Ghidra/Features/Decompiler/src/main/doc) (see also [here](https://github.com/NationalSecurityAgency/ghidra/issues/472)
 
-##Adding a manual file
+## Adding a manual file
 
 A processor manual index maps instruction mnemonics to pages in the pdf manual(s). Right clicking on an instruction in the Ghidra listing, and selecting “Processor Manual” will open a browser page displaying the instruction details (from a referenced pdf doc).
 
@@ -212,7 +212,7 @@ ADCA, 77
 ADCB, 78
 ```
 
-##Compiling and exporting
+## Compiling and exporting
 
 The SLEIGH description of the processor module can be compiled (which generates a .slaspec file), by right clicking on “buildLanguage.xml”, and selecting Run As > Ant Build
 
