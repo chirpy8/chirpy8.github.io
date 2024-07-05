@@ -1,0 +1,199 @@
+---
+title: "Writing a Ghidra Loader"
+categories:
+  - Ghidra
+tags:
+  - ECU
+  - Jaguar
+  - AJ27
+  - 68HC16
+  - Ghidra
+  - Loader
+---
+To create a loader in Ghidra, we will need to use the Eclipse IDE with GhidraDev installed (see post on "Writing a Ghidra processor specification part 1" for more details on this). Ghidra is written in Java, so familiarity with Java is needed to write the loader module.
+
+From Eclipse IDE, select GhidraDev > New > Ghidra Module Project to create a skeleton module, e.g. “AJ27Files” and click Next
+
+![new ghidraDev module project snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/new ghidraDev module project snapshot.png)
+
+Select "Loader" for the module template. (Note that “Loader” will be appended to the name of the project files when they are created)
+
+![ghidra module loader selected snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra module loader selected snapshot.png)
+
+Click Finish and the project will be created, and a java source file  called “AJ27FilesLoader.java” will be generated and opened in an editing window.
+
+![ghidra loader files generated snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra loader files generated snapshot.png)
+
+There will with 5 methods generasted by the Loader template:
+* getName
+* findSupportLoadSpecs
+* load
+* getDefaultOptions
+* validateOptions
+
+## getname()
+
+The getName() method returns a String which identifies this loader when importing a file into Ghidra. For instance we can give it the name "b68 Jaguar AJ27".
+
+## findSupportedLoadSpecs()
+
+This method:
+* Determines if this loader is suitable to be used by Ghidra to import a requested file, and what priority it should rated at (e.g. if it should be offered as the first choice loader, etc.)
+* Execute some validation checks, and if they pass create a suitable “loadSpec” and returns it
+
+If a ".b68" target file (which as we noted in a previous post is the flash file type we are interested in) passes our loader's validation method, and is also evaluated as having the highest priority for the filetype ".b68" , then it will be offered as the default filetype to import this file into Ghidra, when we request "Import File..." in Ghidra.
+
+![ghidra import file dialog snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra import file dialog snapshot.png)
+
+Our "b68" loader will execute the following tasks in this method
+* check if filename extension is b68
+* check if first 2 bytes (0 and 1) are 0x04 0x00
+* check if bytes 4 and 5 are one of the following checksums
+  *		aa 00, f0 97, 03 15
+  * corresponding to cal file, main boot file, or sub boot file
+* check if length parameter in file header is 4, 5 or 160
+* check if total bytes in file is 6 + 1029*lengthParameter, i.e. cross check length parameter
+* check if last 2 bytes in file are 00 00
+
+If these checks pass, we will create and return a HC16 loadSpec
+
+``` java
+	@Override
+	public Collection<LoadSpec> findSupportedLoadSpecs(ByteProvider provider) throws IOException {
+		List<LoadSpec> loadSpecs = new ArrayList<>();
+		
+		final long START_OFFSET = 0;
+		final long START_LEN = 2;
+		final long SIG_OFFSET = 4;
+		final long SIG_LEN = 2;
+		
+		byte[] START_SEQ = {(byte) 0x04,(byte) 0x00};
+		byte[] CAL_SEQ = {(byte) 0x54,(byte) 0xaa};
+		byte[] MAIN_BOOT_SEQ = {(byte) 0xf0,(byte) 0x97};
+		byte[] SUB_BOOT_SEQ = {(byte) 0x03,(byte) 0x15};
+		
+		boolean validName =  provider.getName().endsWith(".B68") || provider.getName().endsWith(".b68");
+		
+		byte[] startSeq = provider.readBytes(START_OFFSET, START_LEN);
+		boolean validStart = Arrays.equals(startSeq, START_SEQ);
+		
+		byte[] sigSeq = provider.readBytes(SIG_OFFSET, SIG_LEN);
+		
+		boolean calFile = Arrays.equals(sigSeq, CAL_SEQ);
+		boolean mainBoot = Arrays.equals(sigSeq, MAIN_BOOT_SEQ);
+		boolean subBoot = Arrays.equals(sigSeq, SUB_BOOT_SEQ);
+		
+		boolean validSignature = calFile || mainBoot || subBoot;
+				
+		final long LENGTH_OFFSET = 3;
+		int totalBlocks = Byte.toUnsignedInt(provider.readByte(LENGTH_OFFSET));
+		
+		boolean validLengthParam =
+				(totalBlocks == 4) || (totalBlocks == 5) || (totalBlocks == 160);
+		
+		long fileLength = provider.length();
+		boolean validFileLength = (fileLength == ((totalBlocks*1029) + 6));
+		
+		final long END_OFFSET = -2;
+		final long END_LEN = 2;
+		byte[] END_SEQ = {(byte) 0x00,(byte) 0x00};
+		byte[] endSeq = provider.readBytes(fileLength+END_OFFSET, END_LEN);
+		
+		boolean validEnd = Arrays.equals(endSeq, END_SEQ);
+		
+		if (validName && validStart && validSignature
+				&& validLengthParam && validFileLength && validEnd)
+		{
+			loadSpecs.add(new LoadSpec(this, 0, 
+				new LanguageCompilerSpecPair("HC16:BE:32:default","default"),true));
+		}
+
+		return loadSpecs;
+	}
+```
+
+## getDefaultOptions()
+
+This method allows custom user options to be selected before the file is loaded, by clicking the “Options” button. An example in this case is to optionally request adding some HC16 processor specific labels when loading the target file. To facilitate this, we can display a checkbox, after the Options button is pushed on the "Import File..." dialog box, and check this box to request adding for file specific labels.
+
+```java
+	@Override
+	public List<Option> getDefaultOptions(ByteProvider provider, LoadSpec loadSpec,
+			DomainObject domainObject, boolean isLoadIntoProgram) {
+		
+		// single Boolean option is added
+		// a checkbox will be rendered using the default BooleanEditorComponent in OptionsEditorPanel
+		List<Option> list = new ArrayList<Option>();
+		Option fsl = new Option("Apply File Specific Labels and Memory Blocks", Boolean.TRUE);
+		list.add(fsl);
+		return list;
+	}
+```
+
+We can test the value of this option by adding a line like `java boolean addFileSpecificLabels = ((Boolean) options.get(0).getValue()).booleanValue();` in the load() method below, and if it is checked we can execute the code to add these labels. 
+
+## ValidateOptions()
+
+In general, we need to check each option, and if not acceptable return a String describing the issue. Returning null indicates all options are valid.
+
+## load()
+
+To load the code in a ",b68" file we will execute the following tasks:
+* read the number of 1k blocks from the b68 file header
+* create an array to store the actual data in 1k blocks
+* create an array to store the address header for each  1k block
+* load the data and extract the header values
+* process the block headers to determine the number of contiguous blocks, and their start addresses/lengths **(not shown)**
+
+```java
+		final long LENGTH_OFFSET = 3;
+		int totalBlocks = Byte.toUnsignedInt(provider.readByte(LENGTH_OFFSET));
+		
+		// array of byte array to store file bytes in 1k blocks
+		byte[][] fileData = new byte[168][1024];
+		//array to capture block pointer values
+		long[] blockPointers = new long[168];
+		
+		try
+		{
+			//read all available blocks and store	
+			for (int x=0; x < totalBlocks; x++)
+			{
+				//read a 1k block and store in fileData
+				fileData[x] = provider.readBytes(9+(x*1029),1024);
+				// initialize variable for block pointer (base address where block will be loaded)
+				long blockPointer = 0;
+				// get 3 byte block pointer from file and compute big endian value
+				byte[] pointerBytes = provider.readBytes(6+(x*1029),3);
+				int shiftLeft = 16;
+				for (byte b : pointerBytes)
+				{
+					blockPointer = blockPointer + (Byte.toUnsignedInt(b) << shiftLeft);
+					shiftLeft -= 8;
+				}
+				blockPointers[x] = blockPointer;
+			}
+
+```
+
+We can then create MemoryBlocks in Ghidra using the GhidraFlatAPI createMemoryBlock() method, to store the code.
+
+```java
+			FlatProgramAPI flatAPI = new FlatProgramAPI(program);
+			int blockIndex = 0;
+
+			for (blockSpec bspec : contigBlocks) {
+				String msg = "Creating memory block at 0x"+Long.toHexString(bspec.getStartAddr())+
+						" with length 0x"+Integer.toHexString(bspec.getLen()*1024);
+				monitor.setMessage(msg);
+				String bIndex = Integer.toString(blockIndex);
+				Address startAddr = flatAPI.toAddr(bspec.getStartAddr());
+				MemoryBlock block = flatAPI.createMemoryBlock("Block"+bIndex, startAddr, bspec.getContents(), false);
+				block.setPermissions(true,  false,  true); //read and execute, not write
+				blockIndex++;
+			}
+
+```
+
+A full implementation of a loader for the ".b68" file format is available [here](https://github.com/chirpy8/Jaguar_AJ27_B68)
+(Note - it appears that Jaguar gave both AJ26 and AJ27 flash file the file extension ".b68". However, AJ26 ECU files do not have the same format as AJ27 (they appear to be simple flat files with HC16 code. So AJ26 b68 files will not pass validation checks, and will not work with this loader. It could obviously be modified to add AJ26 support.)
