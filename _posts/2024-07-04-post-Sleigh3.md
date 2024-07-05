@@ -1,5 +1,6 @@
 ---
 title: "Writing a Ghidra processor specification part 3"
+classes: wide
 categories:
   - Ghidra
 tags:
