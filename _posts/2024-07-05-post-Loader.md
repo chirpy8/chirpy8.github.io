@@ -1,5 +1,6 @@
 ---
 title: "Writing a Ghidra Loader"
+classes: wide
 categories:
   - Ghidra
 tags:
@@ -9,7 +10,6 @@ tags:
   - 68HC16
   - Ghidra
   - Loader
-classes: wide
 ---
 To create a loader in Ghidra, we will need to use the Eclipse IDE with GhidraDev installed (see post on "Writing a Ghidra processor specification part 1" for more details on this). Ghidra is written in Java, so familiarity with Java is needed to write the loader module.
 
