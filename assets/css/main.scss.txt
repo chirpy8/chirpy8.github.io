@@ -5,10 +5,12 @@ search: false
 
 @charset "utf-8";
 
+.highlight {
+  font-size: $type-size-7;
+}
+
 @import "minimal-mistakes/skins/{{ site.minimal_mistakes_skin | default: 'default' }}"; // skin
 @import "minimal-mistakes"; // main partials
 
-.highlight {
-  font-size: 60%;
-}
+
 
