@@ -6,7 +6,7 @@ search: false
 @charset "utf-8";
 
 .highlight {
-  font-size: $type-size-7;
+  font-size: $type-size-8;
 }
 
 @import "minimal-mistakes/skins/{{ site.minimal_mistakes_skin | default: 'default' }}"; // skin
