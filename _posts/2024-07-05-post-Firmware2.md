@@ -15,8 +15,9 @@ There are a few ways of obtaining a copy of the firmware from an ECU. One is to 
 * Access the debug/programming port of the CPU (JTAG, etc.) if the code is stored in the CPU in on-board/embedded flash memory. This may involve soldering or otherwise connecting directly to the ECU PCB
   * For the AJ27 ECU, there are Motorola “BDM” debug/programming break out pads on the PCB for both CPUs
   
-For Jaguar, the manufacturer diagnostic software tools are called SDD/IDS. These can be obtained from sources on eBay, etc. Browsing a software installation of SDD reveals of folder called "Flash", such as in Jaguar > IDS > Flash. Within this folder there are some database files (.mdb extension). Study of these database files, (especially one called CAL_FILES.mdb) reveals the identity of the flash files for various car models/years
+For Jaguar, the manufacturer diagnostic software tools are called SDD/IDS. These can be obtained from sources on eBay, etc. Browsing a software installation of SDD reveals a folder called "Flash", such as in Jaguar > IDS > Flash. Within this folder there are some database files (.mdb extension). Study of these database files, (especially one called CAL_FILES.mdb) reveals the identity of the flash files for various car models/years
 * e.g. for XKR Model year 2001+, there are 4 files, categorized as:
+
 | Mainboot | Main Cal | Sub Boot | Sub Cal|
 |----------|----------|----------|--------|
 |F27SA074.b68|F27SC074.b68|F27SB074.b68|F27SD074.b68|
@@ -59,7 +60,7 @@ Scrolling down, at address 0x409 the code becomes messy.
 
 ![ghidra hex view3]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra hex view3.png)
 
-The bytes at address 0x409 are 00 00 00 04 00. And the next byte is 0x37, which could be an instruction with a page3 prefix of 0x37. Something else they may not be a coincidence is that 0x409 is exactly 0x200 bytes after our start location. Going back to the hex viewer, and looking further ahead, we see something similar at address 0x80e.
+The bytes at address 0x409 are 00 00 00 04 00. And the next byte is 0x37, which could be an instruction with a page3 prefix of 0x37. Something else that may not be a coincidence is that 0x409 is exactly 0x200 bytes after our start location. Going back to the hex viewer, and looking further ahead, we see something similar at address 0x80e.
 
 ![ghidra hex view4]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra hex view4.png)
 
@@ -67,7 +68,7 @@ Here we see a pattern of bytes 00 00 00 08 00. And at address 0xc13 there is ano
 
 ![ghidra hex view5]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra hex view5.png)
 
-So we have code starting at 0x209. We know that for the HC16 processor, vectors occupy the first 0x200 bytes. So this suggests the vectors start at address 0x009. Looking here, we see that the first two vectors (at 0x009 and 0x00b) have the values 0x0bb0 and 0x0200. This would set the program counter to 0x0200. It is also possible that the first 9 bytes, before the start of vectors, is a file header. Also, the 5 byte sequences at 0x409, 0x80e, and 0xc13 (and so on) are block header for blocks of 0x400 bytes (= 1k bytes). Putting this altogether, and adding a bit more info from subsequent insights we have the following information on the ".b68" file format.
+So we have code starting at 0x209. We know that for the HC16 processor, vectors occupy the first 0x200 bytes. So this suggests the vectors start at address 0x009. Looking here, we see that the first two vectors (at 0x009 and 0x00b) have the values 0x0bb0 and 0x0200. This would set the program counter to 0x0200. It is also possible that the first 9 bytes, before the start of vectors, are a file header. Also, the 5 byte sequences at 0x409, 0x80e, and 0xc13 (and so on) are block header for blocks of 0x400 bytes (= 1k bytes). Putting this altogether, and adding a bit more info from subsequent insights we have the following information on the ".b68" file format.
 
 * 9 Byte initial header
   * 04 00: block size (1k bytes)
