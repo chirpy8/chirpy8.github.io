@@ -202,7 +202,7 @@ We can then create MemoryBlocks in Ghidra using the GhidraFlatAPI createMemoryBl
 
 ```
 
-A full implementation of a loader for the ".b68" file format is available [here](https://github.com/chirpy8/Jaguar_AJ27_B68)
+A full implementation of a loader for the ".b68" file format is available [here](https://github.com/chirpy8/Jaguar_AJ27_B68). If using this as a starting point, probably the easiest way to create a loader module is to use the GhidraDev template, and then replace the contents of the xxxxLoader.java file created in src/main/java with the code in Jaguar_AJ27_B68Loader.java.
 
 (Note - it appears that Jaguar gave both AJ26 and AJ27 flash file the file extension ".b68". However, AJ26 ECU files do not have the same format as AJ27 (they appear to be simple flat files with HC16 code. So AJ26 b68 files will not pass validation checks, and will not work with this loader. It could obviously be modified to add AJ26 support.)
 
