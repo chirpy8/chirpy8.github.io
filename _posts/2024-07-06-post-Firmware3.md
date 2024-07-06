@@ -1,5 +1,6 @@
 ---
 title: "Annotating a firmware file in Ghidra"
+classes: wide
 categories:
   - Software and firmware
 tags:
@@ -17,13 +18,13 @@ The Y5 and Y6 variants of the 68HC16 have a number of specialized modules in add
 
 ![HC16 Y5 modules and addresses]({{ site.url }}{{ site.baseurl }}/assets/images/HC16 Y5 modules and addresses.png)
 
-Each module has a number of registers that allow it to be configured, monitored, and controlled, and are either 1 byte or 1 word (2 bytes) in length. The memory locations of these registers are at fixed addresses, which means we can create a script in Ghidra, or a method in a loader module, to add labels to these addresses. This improves code readability, because Ghidra will replace the address shown in the code listing window with the applied labels. This is shown below for an example of the SLIM module being configured. A register addresses, such as 0xffa00 for the SLIM Configuration register, is replaced with the text "SLIMCR".
+Each module has a number of registers that allow it to be configured, monitored, and controlled, and are either 1 byte or 1 word (2 bytes) in length. The memory locations of these registers are at fixed addresses, which means we can create a script in Ghidra, or a method in a loader module, to add labels to these addresses. This improves code readability, because Ghidra will replace the address shown in the code listing window with the applied labels. This is shown below for an example of the SLIM module being configured. A register address, such as 0xffa00 for the SLIM Configuration register, is replaced with the text "SLIMCR".
 
 ![HC16Y5 SLIM memory map snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/HC16Y5 SLIM memory map snapshot.png)
 
 ![ghidra memory labels1]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra memory labels1.png)
 
-The loader module reviewed in the previous post is written to automatically adds these Y5/Y6 variant labels when importing a ".b68" AJ27 ECU flash file, because it knows that these files are specific to the ECU, and so the CPU must be a Y5 or Y6 (and not a Y3 or Z1 or R1, etc.), It does this with the method HC16Y5Labels().
+The loader module reviewed in the previous post is written to automatically add these Y5/Y6 variant labels when importing a ".b68" AJ27 ECU flash file, because it knows that these files are specific to the ECU, and so the CPU must be a Y5 or Y6 (and not a Y3 or Z1 or R1, etc.), It does this with the method HC16Y5Labels().
 
 ![ghidra HC16Y5Labels listing excerpt]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra HC16Y5Labels listing excerpt.png)
 
@@ -39,7 +40,7 @@ The first creates the label "SLIMCR" for the address 0xffa0, and the second crea
 There are a few other tasks that this method undertakes:
 * it creates a memory block at address 0xff000 of length 0x1000 bytes for all the modules, called "SlimMemorySpace". This corresponds with the image at the start of this post which shows all modules are located between addresses 0xff000 and 0xfffff
 * it determines whether the CPU is a Y5 or a Y6 variant, by reading the SLIM test register at address 0xffa02. (This is undocumented by Motorola, but from code analysis we can discover that the value stored here is 0xcc for Y5 variant and 0xd0 for Y6 variant. This information is used later in the method to determine which flash array labels to configure, since they differ for Y5 versus Y6
-* it sets the type of memory for "SlimMemorySpace" to volatile, because some registers can change their values depending on operation of the CPU, and so they cannot be relied upon to set to any particular value. Ghidra needs to know this when performing various analysis functions.
+* it sets the type of memory for "SlimMemorySpace" to volatile, because some registers can change their values depending on operation of the CPU, and so they cannot be relied upon to be set to any particular value. Ghidra needs to know this when performing various analysis functions.
 
 # Labeling interrupt vectors and interrupt service routines
 
@@ -126,7 +127,7 @@ The loader module reviewed in the previous post also automatically marks up an i
 
 # Creating and labeling memory blocks
 
-Moving on to labeling other modules, a challenge we have is that for several of them their location in memory is configurable, and is set at run time by the code. The base memory addresses for the RAM and EEPROMs, as well as the Canbus controller, fall into this category. This means we have to review the AJ27 ECU code before we can create routines to apply the appropriate labels. Luckily, it seems that the configuration is consistent across all AJ27 code variants (various model years and regions of Jaguar XJ8, XJR, XK8 and XKR). Using the files for XKR US model years 2001-3, with naming format F27S?074.b68, we can see the from ghidra code listing the configuration of the various modules in the initialization code as follows:
+Moving on to labeling other modules, a challenge we have is that for several of them their location in memory is configurable, and is set at run time by the code. The base memory addresses for the RAM and EEPROMs, as well as the Canbus controller, fall into this category. (Note that for the EEPROMS, their base addresses can be inferred from the information in the "b68" file, so the loader uses that information to create memory blocks for the code) This means we have to review the AJ27 ECU code before we can create routines to apply the appropriate labels. Luckily, it seems that the configuration is consistent across all AJ27 code variants (various model years and regions of Jaguar XJ8, XJR, XK8 and XKR). Using the files for XKR US model years 2001-3, with naming format F27S?074.b68, we can see the from ghidra code listing the configuration of the various modules in the initialization code as follows:
 
 ```
         0000039e 37 b5 00 fb     LDD        #0xfb
