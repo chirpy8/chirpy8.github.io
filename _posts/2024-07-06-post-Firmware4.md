@@ -12,7 +12,7 @@ tags:
 ---
 In this post, we will start to analyze an AJ27 CPU firmware file.
 
-First we need to open Ghidra. If you are using windows (as opposed to Linux, Mac, etc.) then this can be done by double clicking on the clicking the "ghidraRun" Windows Batch File in the Ghidra directory you hopefully have downloaded and extracted. (snapshot of directory for version Ghidra 11.1.1 shown below)
+First we need to open Ghidra. If you are using windows (as opposed to Linux, Mac, etc.) then this can be done by double clicking on the "ghidraRun" Windows Batch File in the Ghidra directory you hopefully have downloaded and extracted. (snapshot of directory for version Ghidra 11.1.1 shown below)
 
 ![ghidra 11.1.1 directory snapshot]({{ site.url }}{{ site.baseurl }}/assets/images/ghidra 11.1.1 directory snapshot.png)
 
@@ -46,7 +46,7 @@ Click OK, and then double click on the F27SC074.b68 file in the Active Project w
 
 Click No (no big deal if you click yes, but some of the defaults don't work so well on this file type)
 
-You now should have a listing window open, that looks something like this.
+You should now have a listing window open, that looks something like this.
 
 ![b68 file listing window snapshot1]({{ site.url }}{{ site.baseurl }}/assets/images/b68 file listing window snapshot1.png)
 
@@ -64,7 +64,7 @@ Assuming your cursor is still at address 200, click the "U" letter just under th
 
 ![b68 file listing window snapshot4]({{ site.url }}{{ site.baseurl }}/assets/images/b68 file listing window snapshot4.png)
 
-Ghidra disassembled up to address bd4, and then followed the jump to 27b0 to continue disassembly. And there was not code path back to bd8 - we know this because it is labeled "User_Defined_105_ISR", which is an annotation created by the loader, which found an exception vector pointing to this address. So the only likely way this code is called is via an interrupt. If true, then we should be able to disassemble code at location bd8. Click on address bd8 so the cursor moves to this address, and press "D". The bytes do indeed disassemble.
+Ghidra disassembled up to address bd4, and then followed the jump to 27b0 to continue disassembly. And there was no code path back to bd8 - we know this because it is labeled "User_Defined_105_ISR", which is an annotation created by the loader, which found an exception vector pointing to this address. So the only likely way this code is called is via an interrupt. If true, then we should be able to disassemble code at location bd8. Click on address bd8 so the cursor moves to this address, and press "D". The bytes do indeed disassemble.
 
 ![b68 file listing window snapshot5]({{ site.url }}{{ site.baseurl }}/assets/images/b68 file listing window snapshot5.png)
 
@@ -104,7 +104,7 @@ Applying the IZE=0xb0000 assumption to these 3 instructions results in the follo
 
 ```
 
-We can see the assumption added in-line, and that the instructions are accessing the byte in RAM at address b0d4c. We can go directly to this address (e.g. to see what other code accesses this memory location) by double clicking on "DAT_000b0d4c". This greatly adds moving around the code when trying to analyze functionality.
+We can see the assumption added in-line, and that the instructions are accessing the bytes in RAM at address b0d4c and 4d. We can go directly to this address (e.g. to see what other code accesses this memory location) by double clicking on "DAT_000b0d4c". This greatly assists moving around the code when trying to analyze functionality.
 
 One way to automate this, as well as to quickly re-create a marked up listing, is to use a Ghidra script. Working with scripts is well covered in "The Ghidra Book", as well as other on-line resources. An example script to do this, as well as disassemble all the code areas, skipping the data areas, is as below. The data areas need to be logged once on a manual review of the code, and then can be added into the script.
 
@@ -188,4 +188,4 @@ public class F27SC074_501_disassemble extends GhidraScript {
 	}
 ```
 
-This works for most of the code, however when the value of IZ is overidden by code that sets the value of IZ from a Stack pull, then Ghidra assumes that value of Z register has changed and is unknown. So in a few cases, it is ineffective, without additional fixes.
+This works for most of the code, however when the value of IZ is overidden by code that sets the value of IZ from a stack pull (e.g. PULM), then Ghidra assumes that the value of Z register has changed and is unknown. So in a few cases, it is ineffective, without additional fixes.
