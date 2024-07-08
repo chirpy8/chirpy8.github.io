@@ -14,7 +14,7 @@ Looking into the OBD2 implementation at an early stage is beneficial, since it c
 
 OBD2 is supported on the AJ27 ECU using both the serial interface (ISO 9141-2) and Canbus (ISO 15765-4). The serial port A on IC601 supports the ISO 9141-2 connection. The AN82527 Canbus controller connected to IC501, and mapped to memory locations 0x80000-ff supports the canbus connection, which supports OBD2 as well as general communications with the other car modules (TCM, ABS, INST). In general on this ECU, IC501 is the “main” CPU and does most of the work to operate the engine. IC601 is the “sub” CPU, and does monitoring/diagnostics, as well as running the throttle control, OBD2 serial, etc.
 
-The implementation of ISO9141-2 on IC601 supports OBD2 modes 1-8, but not 9 or A. Mode 9 allows reading the VIN, which is why as it is missing it does not work on IDS (although there is still a way to read the VIN which is stored in the 93C86 EEPROM). Additional modes/UDS services are not supported on serial. The canbus implementation of OBD2 is more extensive, and since it also links to the other modules, it is a good place to start when analyzing firmware. 
+The implementation of ISO9141-2 on IC601 supports OBD2 modes 1-8, but not 9 or A. Mode 9 allows reading the VIN, which is why it does not work on IDS (although there is still a way to read the VIN which is stored in the 93C86 EEPROM). Additional modes/UDS services are not supported on serial. The canbus implementation of OBD2 is more extensive, and since it also links to the other modules, it is a good place to start when analyzing firmware. 
 
 To start, we need to understand a little about the AN82527 can controller. It is memory mapped to addresses 0x80000-ff on IC501. There are 15 message objects that can be transmitted/received from the controller over the canbus.
 
@@ -25,19 +25,19 @@ The functions that interact with the AN82527 can be determined by looking reads/
 ![canbus code snapshot1]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot1.png)
 
 For the F27SC074 firmware these include:
-* FUN 5af2, which is conditionally call from the main program loop
+* FUN 5af2, which is conditionally called from the main program loop
 * FUN 5bb6, which is called from FUNs 48ca, 4994, 4a4a, 4aae
 * FUN 5b34, which is called from FUNs 48ca, 4994, 4a4a, 4aae
 
-Review of FUN 5af2 shows that it copies the contents of 256 bytes of a memory block located at 0xb03cd to the 0x80000 block. So it seems that this ‘mirror’ RAM block is used to update message objects for send and receive, as well as to setup basic configuration such as message IDs for the objects)
+Review of FUN 5af2 shows that it copies the contents of 256 bytes of a memory block located at 0xb03ce to the 0x80000 block. So it seems that this ‘mirror’ RAM block is used to update message objects for send and receive, as well as to setup basic configuration such as message IDs for the objects)
 
 ![canbus code snapshot2]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot2.png)
 
-Since both FUNs 5bb6 and 5b34 are called by the 4 Functions 48ca, etc., let's take a look at FUN 48ca
+Since both FUNs 5bb6 and 5b34 are called by the four functions 48ca, etc., let's take a look at FUN 48ca
 
 ![canbus code snapshot3]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot3.png)
 
-After a new conditional tests (not shown) a variable b04f7 is incremented, and if >= 0x19 then it is set to 0. So this variable cycles through the values 1-24. Also we can see that for values 1-23, variable b0505 is set to 8 and for value 24 it is set to 9. Then (not shown) after checking that a special ECU test mode is inactive, the Y register is set to the value 0x04976 which is a data table start address.
+After conditional tests (not shown) a variable b04f7 is incremented, and if >= 0x19 then it is set to 0. So this variable cycles through the values 1-24. Also we can see that for values 1-23, variable b0505 is set to 8 and for value 24 it is set to 9. Then (not shown) after checking that a special ECU test mode is inactive, the Y register is set to the value 0x04976 which is a data table start address.
 
 ![canbus code snapshot4]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot4.png)
 
@@ -82,9 +82,9 @@ More analysis reveals that this function is called from an indirect subroutine c
 
 The other 3 functions do similar things
 
-FUN 4994: TX msg b (1 byte) every 384ms, Rx messages 6 (3 bytes) and c (8 bytes) every 16 ms
-FUN 4a4a: TX msg d (8 bytes) every 32 ms
-FUN 4aae: RX msg e (1 byte) every 64 ms, RX msg f (1 byte) (support multiple IDs) every 64 ms
+* FUN 4994: TX msg b (1 byte) every 384ms, Rx messages 6 (3 bytes) and c (8 bytes) every 16 ms
+* FUN 4a4a: TX msg d (8 bytes) every 32 ms
+* FUN 4aae: RX msg e (1 byte) every 64 ms, RX msg f (1 byte) (support multiple IDs) every 64 ms
 
 To see what these messages might be, we can head over to the RAM area at 0xb03ce and see what functions access these locations. The memory organization for a message object is as below.
 
@@ -98,7 +98,7 @@ And this is true for all the messages, so a review of FUN 44d4 should provide in
 
 ![canbus code snapshot8]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot8.png)
 
-Message 1 ARB1/0 is set to 0x0c80. Arbitration 0 contains high bits for the 11 bit identifier. Arbtration 1 contains the lowest 3 bits, stored as bits 7, 6, 5. So, in bit format, if we take the word 0x0c80 and truncate the last 5 bits, we will get the canbus message ID.
+Message 1 ARB1/0 is set to 0x0c80. Arbitration 0 contains high bits for the 11 bit identifier. Arbitration 1 contains the lowest 3 bits, stored as bits 7, 6, 5. So, in bit format, if we take the word 0x0c80 and truncate the last 5 bits, we will get the canbus message ID.
 
 0000 1100 1000 0000 > truncated and right justifed is 000 0110 0100 = 0x064.
 
