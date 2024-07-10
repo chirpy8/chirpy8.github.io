@@ -128,6 +128,8 @@ Channel 0 is read and the 10 bit right justified value copied into address b03a6
 
 and then this value at b03a6 is read and stored in address b0ad0 (unless it is overridden by a value input via canbus service 2f, stored in b0af6). So the cross check is good, and MAF volts is indeed stored into address 0xb0ad0.
 
+![canbus code snapshot20]({{ site.url }}{{ site.baseurl }}/assets/images/canbus code snapshot20.png)
+
 As a wrap up, the variable identities discovered using service 22 for this firmware load (F27SC074, F27SD074) are summarized in the table below.
 
 | **USD Service 0x22 parameter**                                                                            | **Hex value** | **Bytes** | **<br>** | **IC501 FUN (F27SC074.b68)** | **IC601 FUN (F27SD074.b68)** | **IC501 Variable (F27SC074.b68)**                                                                                                                                                                                                                           | **IC601 Variable IC (F27SD074.b68)**                                                                                                                                                                                                                                                                     |
