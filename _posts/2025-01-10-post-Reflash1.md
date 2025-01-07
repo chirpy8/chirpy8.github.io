@@ -54,7 +54,7 @@ The data interface to execute BDM commands is basically the same as a standard S
 
 ![reflash bdm command set]({{ site.url }}{{ site.baseurl }}/assets/images/reflash bdm command set.png)
 
-The key command that will be needed to extract the TPU EEPROM data is Read Data Memory (RDM). As a bonus, once this interface is coded, then other areas of the processor can be read and extracted. This will allow the reset configuration of the processor to be determined (such as the where to start code execution after a reset), as well as extraction of all other firmware, which will allow the particular firmware version on a sample ECU to be captured. 
+The key command that will be needed to extract the TPU EEPROM data is Read Data Memory (RDMEM). As a bonus, once this interface is coded, then other areas of the processor can be read and extracted. This will allow the reset configuration of the processor to be determined (such as the where to start code execution after a reset), as well as extraction of all other firmware, which will allow the particular firmware version on a sample ECU to be captured. 
 
 In the next post, I will go over some sample Arduino code that will provide the capabilities to read the memory contents from the processor.
 
