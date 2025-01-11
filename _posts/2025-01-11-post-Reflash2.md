@@ -20,7 +20,7 @@ In order to operate the BDM interface via an Arduino, as introduced in the previ
 
 So for initial configuration of the Arduino, we have the following
 
-```arduino
+```cpp
   //configure reset
   digitalWrite(7, LOW);
   pinMode(7, OUTPUT);
@@ -53,7 +53,7 @@ So for initial configuration of the Arduino, we have the following
 
 Next we want to initiate BDM mode on the processor. We do this by asserting the RESET signal, forcing BKPT to a low state, and then releasing the RESET signal.
 
-```arduino
+```cpp
   //initiate BDM 
 
     digitalWrite(7,HIGH);  //assert reset
@@ -76,7 +76,7 @@ To send a BDM command, the key processes are
 * send the 16 bits of data for the command, and receive and store the previous command response. The 16 bits are split into 2 bytes which are sent sequentially
 * compute the status of the response message based on the status bit and the contents of the 16 bit response data
 
-```arduino
+```cpp
 // sends a BDM command to MCU, and receives previous response
 // command to send is passed in as 16 bit parameter
 // response is stored in highRX and lowRX, and status is return value
@@ -143,7 +143,7 @@ int sendBDMCommand(unsigned int value)
 
 the above code relies on some constant definitions as below, to determine the status of the BDM command execution
 
-```arduino
+```cpp
 const int DATA_VALID = 0;
 const int COMMAND_COMPLETE = 1;
 const int NOT_READY = 2;
@@ -152,7 +152,7 @@ const int ILLEGAL_COMMAND = 3;
 
 and also a function to send/receive a data byte over SPI
 
-```arduino
+```cpp
 //sends a byte over SPI, and waits until transmission complete before returning
 byte sendSPIbyte(byte sendByte)
 {
@@ -179,7 +179,7 @@ Following the command sequence diagram above, to read a word from memory at addr
 
 Sample code that executes the above is shown below. It also includes an extra feature which is notated as "pause while suspend operations flag is set". This will be described later in the post.
 
-```arduino
+```cpp
 //function to read a data memory word and return its value
 unsigned int readDataWord(unsigned long targetAddress)
 {
@@ -246,7 +246,7 @@ In order to download a significant amount of memory data such as the contents of
 
 A function to do this is as follows
 
-```arduino
+```cpp
 // function to read  block of data and send as bytes, preceded by start marker
 void sendMemBlock(unsigned long startAddr, long numBytes)
 {
@@ -275,7 +275,7 @@ One possible solution to all of this is that the watchdog timeout can be predict
 
 Putting this all together, the first step is to add some setup code to determine whether the processor variant is Y5 or Y6, by reading the test register in the "SLIM" block
 
-```arduino
+```cpp
  //determine if the chip is a Y5 or a Y6
   unsigned int testVal = readDataByte(0xffa02);
   boolean isY6;
@@ -287,7 +287,7 @@ Putting this all together, the first step is to add some setup code to determine
 ```
 We configure a 'pin change' interrupt on D6, which is the FREEZE signal. FREEZE is asserted high when BDM mode is triggered, and goes low when BDM mode is exited (when the processor is reset).
 
-```arduino
+```cpp
   //enable pin change interrupt on freeze pin
   PCMSK2 |= bit(PCINT21);
   PCIFR |= bit(PCIF2);
@@ -296,7 +296,7 @@ We configure a 'pin change' interrupt on D6, which is the FREEZE signal. FREEZE 
 
 Next we configure Timer1 in the Arduino, so that it will set a 'suspend operations' flag a fixed interval after BDM mode has been started.
 
-```arduino
+```cpp
 //configure timer 1
  // Mode 4 CTC on OCRA
  // prescale 64 for 4 us tick
@@ -313,7 +313,7 @@ Next we configure Timer1 in the Arduino, so that it will set a 'suspend operatio
 
 We configure an interrupt service routine for when the timer expires, which sets a 'suspend' flag, which can be used to pause the memory read requests in the main program.
 
-```arduino
+```cpp
  volatile boolean suspendBDMoperations;
 
 //timer 1 output compare A interrupt
@@ -326,7 +326,7 @@ We configure an interrupt service routine for when the timer expires, which sets
 
 Finally, we create an interrupt service routine for the pin change interrupt, i.e. for when FREEZE goes high (start of BDM mode), and FREEZE goes low (loss of BDM mode). On entering BDM mode, we enable the disabled EEPROM block, reset the 'suspend operations' flag, and start the suspend timer. On losing BDM mode, we execute the process to re-enable BDM mode.
 
-```arduino
+```cpp
 // pin change interrupt on pin D5 (freeze)
 // detects loss of BDM, and re-initiates BDM
  ISR (PCINT2_vect)
