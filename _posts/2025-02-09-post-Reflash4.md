@@ -81,7 +81,7 @@ Next let's look at the CPU1 TPU code. From the previous post, a summary level vi
 *  Check if software watchdog timer has counted down to zero, and if so reset some flags, and restart timer
 *  Use real time counter to maintain power supply hardware watchdog signal
 
-Also, as a reminder, the CPU1 code uses the canbus chip (AN82427) message ram for temporary storage of data. The AN82527 is mapped to base address 0x80000 in CPU1, and has an address space of 256 locations.
+Also, as a reminder, the CPU1 code uses the canbus chip (AN82527) message ram for temporary storage of data. The AN82527 is mapped to base address 0x80000 in CPU1, and has an address space of 256 locations.
 
 ![reflash4 an82527-1]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 an82527-1.png)
 
