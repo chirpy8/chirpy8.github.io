@@ -13,11 +13,11 @@ In the last post we established that CPUs boot into the TPU EEPROM area on reset
 
 The code for CPU2 is fairly simple. After basic initializations, there is an execution loop which proceeds through the following steps:
 
-1. Check serial port for a new incoming byte from CPU1. If new data available, load it into register B, and load X with value 0x0b8008
+1) Check serial port for a new incoming byte from CPU1. If new data available, load it into register B, and load X with value 0x0b8008
 
 ![reflash4 code snapshot1]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot1.png)
 
-2. If incoming byte has value in range 0-5, send back a byte to CPU1 over serial, as below. Also, for incoming values 1-5, write 0 to address 0x0b1000
+2) If incoming byte has value in range 0-5, send back a byte to CPU1 over serial, as below. Also, for incoming values 1-5, write 0 to address 0x0b1000
 
 | incoming byte | response byte read from address | comment |
 |---|---|---|
@@ -30,22 +30,22 @@ The code for CPU2 is fairly simple. After basic initializations, there is an exe
 
 ![reflash4 code snapshot2]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot2.png)
 
-3. If incoming byte has value of 6 or 0x0c then write 1 to address 0x0b1000
+3) If incoming byte has value of 6 or 0x0c then write 1 to address 0x0b1000
 
 ![reflash4 code snapshot3]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot3.png)
 
-4. If incoming byte has value of 7 then
+4) If incoming byte has value of 7 then
    * write 2 to address 0x0b1000
    * compute 16 bit checksum over addresses 0x0b0000 - 0x0b0fff
    * store checksum at address 0x0b1048
    
 ![reflash4 code snapshot4]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot4.png)
 
-5. Check value stored at address 0x0b1000 (which will be 0, 1, or 2 based on actions from serial port receive byte as above)
+5) Check value stored at address 0x0b1000 (which will be 0, 1, or 2 based on actions from serial port receive byte as above)
 
-6. If value is 0 then do nothing
+6) If value is 0 then do nothing
 
-7. If value is 1, then:
+7) If value is 1, then:
    * check if the 1007 byte RSPI data transfer from CPU1 is complete (CPU1 data addresses 0xb13f0-0xb17f7 are copied to CPU2 data addresses 0xb17f8-0xb1bff)
    * If so, create a 24 bit "base address" from bytes b1bfd/e/f
    * and create a "byte counter" from address b1bfb/c
@@ -56,7 +56,7 @@ The code for CPU2 is fairly simple. After basic initializations, there is an exe
    
 ![reflash4 code snapshot5]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot5.png)
    
-8. If value is 2, then:
+8) If value is 2, then:
    * check if the 1007 byte RSPI data transfer from CPU1 is complete (CPU1 data addresses 0xb13f0-0xb17f7 are copied to CPU2 data addresses 0xb17f8-0xb1bff)
    * compare checksum word computed and stored at address 0x0b1048 (from 4. above) with value received from CPU1 at address 0x0b1bfb
    * if they are equal, then send byte 0x50 to CPU1 over serial port B (checksum passed)
@@ -65,7 +65,7 @@ The code for CPU2 is fairly simple. After basic initializations, there is an exe
 
 ![reflash4 code snapshot6]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot6.png)
 
-9. Maintain watchdog signal to prevent processor reset
+9) Maintain watchdog signal to prevent processor reset
 
 In summary, the TPU code in CPU2 allows
 * eeprom signature and erase count to be sent to CPU1
@@ -89,7 +89,7 @@ The 15 message objects each contain 16 bytes, and only message objects 13 and 15
 
 ![reflash4 an82527-2]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 an82527-2.png)
 
-1. For transfer of data from CPU2 to CPU1 (step 2 from CPU2 covered above), this is illustrated in the code snapshot below. Some bit flags stored in canbus RAM location message1-data6 ensure that the serial data exchange procedure is only executed once. The incoming byte over serial is stored in register E (at 3044a). The value of the byte stored in canbus RAM location message1-data1 counts how many bytes have been received. This value is tested, and used to store the 5 received bytes from CPU2 in canbus RAM locations message2-data0 to message2-data4 and the last in message1-data1.
+1) For transfer of data from CPU2 to CPU1 (step 2 from CPU2 covered above), this is illustrated in the code snapshot below. Some bit flags stored in canbus RAM location message1-data6 ensure that the serial data exchange procedure is only executed once. The incoming byte over serial is stored in register E (at 3044a). The value of the byte stored in canbus RAM location message1-data1 counts how many bytes have been received. This value is tested, and used to store the 5 received bytes from CPU2 in canbus RAM locations message2-data0 to message2-data4 and the last in message1-data1.
 
 ![reflash4 code snapshot7]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot7.png)
 
@@ -109,7 +109,7 @@ At completion, the data has been transferred and stored as in the table below
 | 5 | 0xbfffe | eeprom erase count | message1-data1 |
 
 
-2. The loop to check canbus messages received from ID 0x020 (configured to message object 15) starts at 30586. There are two phases to this loop, depending on the value of flag in message1-data6 bit 3. The first phase only checks for three incoming messages, with byte1 values 0x22, 0x27, and 0x3f (noting that byte0 defines the length of the message). Checking for 0x22 messages starts at 305b0, and if byte1 is equal to 0x22 then the next two bytes are checked. The first value to be checked is 0xe725, and if this is a match, then a response message is created (using message object 13, with ID 0x030). The response sends back the first four bytes of CPU1 eeprom signature (at addresses 0x0b8008-b).
+2) The loop to check canbus messages received from ID 0x020 (configured to message object 15) starts at 30586. There are two phases to this loop, depending on the value of flag in message1-data6 bit 3. The first phase only checks for three incoming messages, with byte1 values 0x22, 0x27, and 0x3f (noting that byte0 defines the length of the message). Checking for 0x22 messages starts at 305b0, and if byte1 is equal to 0x22 then the next two bytes are checked. The first value to be checked is 0xe725, and if this is a match, then a response message is created (using message object 13, with ID 0x030). The response sends back the first four bytes of CPU1 eeprom signature (at addresses 0x0b8008-b).
 
 ![reflash4 code snapshot9]({{ site.url }}{{ site.baseurl }}/assets/images/reflash4 code snapshot9.png)
 
